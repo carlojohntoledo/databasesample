@@ -4,8 +4,10 @@
 <head>
   <title>Admin Page</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+  <!-- Firebase SDK (compat version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -82,11 +84,12 @@
   <p id="statusMsg"></p>
 
   <script>
+    // Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
       authDomain: "storeflesample.firebaseapp.com",
       projectId: "storeflesample",
-      storageBucket: "storeflesample.firebasestorage.app",
+      storageBucket: "storeflesample.appspot.com",
       messagingSenderId: "388721438349",
       appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
     };
@@ -94,8 +97,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Cloudinary config
     const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dglegfflv/image/upload';
-    const CLOUDINARY_UPLOAD_PRESET = 'samplepresetname';
+    const CLOUDINARY_UPLOAD_PRESET = 'samplepresetname'; // Replace with actual preset
 
     const imageInput = document.getElementById("image");
     const preview = document.getElementById("preview");
