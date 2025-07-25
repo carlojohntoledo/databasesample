@@ -1,20 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Admin Page</title>
-</head>
-<body>
-  <h2>Enter User Info</h2>
-  <form id="userForm">
-    <label>Username: <input type="text" name="username" required></label><br>
-    <label>Age: <input type="number" name="age" required></label><br>
-    <label>Date of Birth: <input type="date" name="dob" required></label><br>
-    <button type="submit">Save</button>
-  </form>
-
-  <p id="statusMsg"></p><!DOCTYPE html>
 <html>
+
 <head>
   <title>Admin Page</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,7 +24,7 @@
       background: white;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     input[type="text"],
@@ -59,7 +45,6 @@
       background: #007bff;
       color: white;
       cursor: pointer;
-      transition: background 0.3s ease;
     }
 
     button:hover {
@@ -71,7 +56,6 @@
       margin: 10px auto;
       max-width: 100%;
       border-radius: 8px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
     }
 
     #statusMsg {
@@ -82,6 +66,7 @@
     }
   </style>
 </head>
+
 <body>
   <h2>Add User</h2>
   <form id="userForm">
@@ -96,26 +81,76 @@
 
   <p id="statusMsg"></p>
 
-  <!-- Firebase and JS logic as before -->
-</body>
-</html>
-
-
   <script>
-    const form = document.getElementById("userForm");
-    form.addEventListener("submit", async function (e) {
+    const firebaseConfig = {
+      apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
+      authDomain: "storeflesample.firebaseapp.com",
+      projectId: "storeflesample",
+      storageBucket: "storeflesample.firebasestorage.app",
+      messagingSenderId: "388721438349",
+      appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dglegfflv/image/upload';
+    const CLOUDINARY_UPLOAD_PRESET = 'samplepresetname';
+
+    const imageInput = document.getElementById("image");
+    const preview = document.getElementById("preview");
+
+    imageInput.addEventListener("change", function () {
+      const file = this.files[0];
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+      }
+    });
+
+    document.getElementById("userForm").addEventListener("submit", async function (e) {
       e.preventDefault();
-      const formData = new FormData(form);
 
-      const response = await fetch("save.php", {
-        method: "POST",
-        body: formData
-      });
+      const username = document.getElementById("username").value;
+      const age = document.getElementById("age").value;
+      const dob = document.getElementById("dob").value;
+      const imageFile = document.getElementById("image").files[0];
 
-      const result = await response.text();
-      document.getElementById("statusMsg").innerText = result;
-      form.reset();
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+      document.getElementById("statusMsg").innerText = "Uploading image...";
+
+      try {
+        const cloudRes = await fetch(CLOUDINARY_URL, {
+          method: "POST",
+          body: formData
+        });
+
+        const cloudData = await cloudRes.json();
+
+        if (!cloudData.secure_url) throw new Error("Image upload failed.");
+
+        const imageUrl = cloudData.secure_url;
+
+        await db.collection("users").add({
+          username,
+          age,
+          dob,
+          imageUrl,
+          timestamp: new Date()
+        });
+
+        document.getElementById("statusMsg").innerText = "User saved successfully!";
+        document.getElementById("userForm").reset();
+        preview.style.display = "none";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("statusMsg").innerText = "Error: " + err.message;
+      }
     });
   </script>
 </body>
+
 </html>
