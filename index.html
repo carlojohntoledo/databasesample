@@ -1,97 +1,108 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Main Page</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #eef1f5;
-      padding: 2rem;
-    }
-
-    h2 {
-      text-align: center;
-      color: #222;
-    }
-
-    #userList {
-      max-width: 700px;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 800px;
       margin: auto;
     }
-
+    h2 {
+      text-align: center;
+    }
     .user-card {
-      background: white;
+      background: #fff;
       padding: 15px;
-      border-radius: 10px;
       margin-bottom: 20px;
-      box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-
     .user-card img {
-      width: 100%;
-      max-width: 200px;
-      border-radius: 10px;
-      display: block;
-      margin-bottom: 10px;
+      max-width: 100%;
+      border-radius: 6px;
+      margin-top: 10px;
     }
-
-    .user-card strong {
-      font-size: 1.2rem;
+    .timestamp, .pinned-flag {
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: 5px;
     }
-
-    .user-card p {
-      margin: 4px 0;
+    .pinned-flag {
+      font-weight: bold;
+      color: #d9534f;
     }
   </style>
 </head>
-
 <body>
-  <h2>User List</h2>
-  <div id="userList">Loading...</div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
-      authDomain: "storeflesample.firebaseapp.com",
-      projectId: "storeflesample",
-      storageBucket: "storeflesample.firebasestorage.app",
-      messagingSenderId: "388721438349",
-      appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
+<h2>User List</h2>
+<div id="usersContainer"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
+    authDomain: "storeflesample.firebaseapp.com",
+    projectId: "storeflesample",
+    storageBucket: "storeflesample.appspot.com",
+    messagingSenderId: "388721438349",
+    appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const usersContainer = document.getElementById("usersContainer");
+
+  function timeAgo(date) {
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return "just now";
+    const intervals = {
+      year: 31536000,
+      month: 2592000,
+      week: 604800,
+      day: 86400,
+      hour: 3600,
+      minute: 60
     };
+    for (const [k, v] of Object.entries(intervals)) {
+      const amt = Math.floor(seconds / v);
+      if (amt >= 1) return `${amt} ${k}${amt > 1 ? "s" : ""} ago`;
+    }
+  }
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  function renderUsers(users) {
+    usersContainer.innerHTML = "";
+    users.forEach(doc => {
+      const data = doc.data();
+      const card = document.createElement("div");
+      card.className = "user-card";
+      card.innerHTML = `
+        <h3>${data.username}</h3>
+        <p>Age: ${data.age}</p>
+        <p>DOB: ${data.dob}</p>
+        <img src="${data.imageUrl}" alt="User Image">
+        <div class="timestamp">Added ${timeAgo(data.timestamp.toDate())}</div>
+        ${data.pinned ? '<div class="pinned-flag">📌 Pinned</div>' : ''}
+      `;
+      usersContainer.appendChild(card);
+    });
+  }
 
-    db.collection("users")
-      .orderBy("timestamp", "desc")
-      .onSnapshot(snapshot => {
-        const list = document.getElementById("userList");
-        list.innerHTML = "";
-        if (snapshot.empty) {
-          list.innerHTML = "<p>No users found.</p>";
-        }
+  db.collection("users")
+    .orderBy("pinned", "desc")
+    .orderBy("timestamp", "desc")
+    .onSnapshot(snapshot => {
+      renderUsers(snapshot.docs);
+    });
+</script>
 
-        snapshot.forEach(doc => {
-          const user = doc.data();
-          const div = document.createElement("div");
-          div.className = "user-card";
-          div.innerHTML = `
-            <img src="${user.imageUrl}" alt="User Photo">
-            <strong>${user.username}</strong>
-            <p>Age: ${user.age}</p>
-            <p>DOB: ${user.dob}</p>
-          `;
-          list.appendChild(div);
-        });
-      }, error => {
-        console.error("Error loading users:", error.message);
-        document.getElementById("userList").innerText = "Error loading users.";
-      });
-  </script>
 </body>
-
 </html>

@@ -1,160 +1,179 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Page</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Firebase SDK (compat version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 2rem;
-      max-width: 500px;
+      background: #f5f5f5;
+      padding: 20px;
+      max-width: 800px;
       margin: auto;
-      background: #f4f4f4;
     }
-
     h2 {
       text-align: center;
-      color: #333;
     }
-
-    form {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="file"],
-    button {
-      display: block;
-      width: 100%;
-      margin-bottom: 15px;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #0056b3;
-    }
-
-    #preview {
-      display: block;
-      margin: 10px auto;
-      max-width: 100%;
+    form, .user-card {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 20px;
       border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-
-    #statusMsg {
-      text-align: center;
+    input, button {
+      padding: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 6px;
       margin-top: 10px;
-      font-weight: bold;
-      color: green;
+    }
+    .user-card {
+      position: relative;
+    }
+    .btn-group button {
+      margin-right: 5px;
+    }
+    .timestamp {
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: 5px;
     }
   </style>
 </head>
-
 <body>
-  <h2>Add User</h2>
-  <form id="userForm">
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="number" id="age" placeholder="Age" required>
-    <input type="date" id="dob" required>
-    <label for="image">Add Photo:</label>
-    <input type="file" id="image" accept="image/*" required>
-    <img id="preview" src="" alt="Preview" style="display:none;">
-    <button type="submit">Save</button>
-  </form>
 
-  <p id="statusMsg"></p>
+<h2>Add User</h2>
+<form id="userForm">
+  <input type="text" id="username" placeholder="Username" required>
+  <input type="number" id="age" placeholder="Age" required>
+  <input type="date" id="dob" required>
+  <input type="file" id="image" accept="image/*" required>
+  <button type="submit">Save</button>
+</form>
 
-  <script>
-    // Initialize Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
-      authDomain: "storeflesample.firebaseapp.com",
-      projectId: "storeflesample",
-      storageBucket: "storeflesample.appspot.com",
-      messagingSenderId: "388721438349",
-      appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
+<div id="usersContainer"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDmlh_tc4La-VALfAiVj5uAFwoEqszJxvg",
+    authDomain: "storeflesample.firebaseapp.com",
+    projectId: "storeflesample",
+    storageBucket: "storeflesample.appspot.com",
+    messagingSenderId: "388721438349",
+    appId: "1:388721438349:web:6092a854fdc19ddf36fcc4"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dglegfflv/image/upload';
+  const CLOUDINARY_UPLOAD_PRESET = 'samplepresetname';
+
+  const form = document.getElementById("userForm");
+  const usersContainer = document.getElementById("usersContainer");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const username = form.username.value;
+    const age = form.age.value;
+    const dob = form.dob.value;
+    const imageFile = form.image.files[0];
+
+    const formData = new FormData();
+    formData.append("file", imageFile);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const cloudRes = await fetch(CLOUDINARY_URL, {
+      method: "POST",
+      body: formData
+    });
+
+    const cloudData = await cloudRes.json();
+    const imageUrl = cloudData.secure_url;
+
+    await db.collection("users").add({
+      username,
+      age,
+      dob,
+      imageUrl,
+      timestamp: new Date(),
+      pinned: false
+    });
+
+    form.reset();
+  });
+
+  function timeAgo(date) {
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return "just now";
+    const intervals = {
+      year: 31536000,
+      month: 2592000,
+      week: 604800,
+      day: 86400,
+      hour: 3600,
+      minute: 60
     };
+    for (const [k, v] of Object.entries(intervals)) {
+      const amt = Math.floor(seconds / v);
+      if (amt >= 1) return `${amt} ${k}${amt > 1 ? "s" : ""} ago`;
+    }
+  }
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    // Cloudinary config
-    const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dglegfflv/image/upload';
-    const CLOUDINARY_UPLOAD_PRESET = 'samplepresetname'; // Replace with actual preset
-
-    const imageInput = document.getElementById("image");
-    const preview = document.getElementById("preview");
-
-    imageInput.addEventListener("change", function () {
-      const file = this.files[0];
-      if (file) {
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = "block";
-      }
+  function renderUsers(users) {
+    usersContainer.innerHTML = "";
+    users.forEach(doc => {
+      const data = doc.data();
+      const card = document.createElement("div");
+      card.className = "user-card";
+      card.innerHTML = `
+        <input type="text" value="${data.username}" id="username-${doc.id}">
+        <input type="number" value="${data.age}" id="age-${doc.id}">
+        <input type="date" value="${data.dob}" id="dob-${doc.id}">
+        <img src="${data.imageUrl}" alt="user">
+        <div class="timestamp">Added ${timeAgo(data.timestamp.toDate())}</div>
+        <div class="btn-group">
+          <button onclick="pinUser('${doc.id}', ${!data.pinned})">${data.pinned ? "Unpin" : "Pin"}</button>
+          <button onclick="saveUser('${doc.id}')">Save</button>
+          <button onclick="deleteUser('${doc.id}')">Delete</button>
+        </div>
+      `;
+      usersContainer.appendChild(card);
     });
+  }
 
-    document.getElementById("userForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
+  async function pinUser(id, state) {
+    await db.collection("users").doc(id).update({ pinned: state });
+  }
 
-      const username = document.getElementById("username").value;
-      const age = document.getElementById("age").value;
-      const dob = document.getElementById("dob").value;
-      const imageFile = document.getElementById("image").files[0];
+  async function saveUser(id) {
+    const username = document.getElementById(`username-${id}`).value;
+    const age = document.getElementById(`age-${id}`).value;
+    const dob = document.getElementById(`dob-${id}`).value;
+    await db.collection("users").doc(id).update({ username, age, dob });
+  }
 
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  async function deleteUser(id) {
+    await db.collection("users").doc(id).delete();
+  }
 
-      document.getElementById("statusMsg").innerText = "Uploading image...";
-
-      try {
-        const cloudRes = await fetch(CLOUDINARY_URL, {
-          method: "POST",
-          body: formData
-        });
-
-        const cloudData = await cloudRes.json();
-
-        if (!cloudData.secure_url) throw new Error("Image upload failed.");
-
-        const imageUrl = cloudData.secure_url;
-
-        await db.collection("users").add({
-          username,
-          age,
-          dob,
-          imageUrl,
-          timestamp: new Date()
-        });
-
-        document.getElementById("statusMsg").innerText = "User saved successfully!";
-        document.getElementById("userForm").reset();
-        preview.style.display = "none";
-      } catch (err) {
-        console.error(err);
-        document.getElementById("statusMsg").innerText = "Error: " + err.message;
-      }
+  db.collection("users")
+    .orderBy("pinned", "desc")
+    .orderBy("timestamp", "desc")
+    .onSnapshot(snapshot => {
+      renderUsers(snapshot.docs);
     });
-  </script>
+</script>
+
 </body>
-
 </html>
